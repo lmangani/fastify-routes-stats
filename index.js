@@ -31,7 +31,7 @@ module.exports = fp(async function (fastify, opts) {
   })
 
   fastify.decorate('measurements', measurements)
-  fastify.decorate('stats', stats)
+  if (opts.prometheus) { fastify.decorate('stats', promStats) } else { fastify.decorate('stats', stats) }
 
   const interval = setInterval(() => fastify.log.info({ stats: stats() }, 'routes stats'), 30000)
   interval.unref()
@@ -74,4 +74,25 @@ function stats () {
 
     return acc
   }, {})
+}
+
+function promStats () {
+  const m = measurements()
+  var metrics = ''
+  return Object.keys(m).reduce((acc, k) => {
+    const s = summary(m[k])
+    var e = 'fastify_' + k.split('/').join('_')
+    metrics += '# HELP ' + e + ' The total number of HTTP requests.\r\n'
+    metrics += e + '_mean ' + s.mean() + '\r\n'
+    metrics += e + '_max ' + s.max() + '\r\n'
+    metrics += e + '_min ' + s.min() + '\r\n'
+    metrics += e + '_median ' + s.median() + '\r\n'
+    metrics += e + '_sd ' + s.sd() + '\r\n'
+    metrics += e + '_mode ' + s.mode() + '\r\n'
+
+    // always clear our measures after stats()
+    performance.clearMeasures(ROUTES + k)
+
+    return metrics
+  }, '')
 }

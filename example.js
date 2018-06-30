@@ -5,7 +5,7 @@ const fastify = Fastify({
   logger: true
 })
 
-fastify.register(require('.'))
+fastify.register(require('.'), {prometheus: true})
 
 fastify.get('/', function (request, reply) {
   reply.send({ hello: 'world' })
@@ -15,7 +15,7 @@ fastify.get('/:param/dynamic-route-example', { config: { statsId: 'group-stats-t
   reply.send({ hello: 'world' })
 })
 
-fastify.get('/__stats__', function (request, reply) {
+fastify.get('/metrics', function (request, reply) {
   reply.send(this.stats())
 })
 
